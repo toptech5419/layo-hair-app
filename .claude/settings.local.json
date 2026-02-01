@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.pexels.com)",
+      "Bash(git -C \"C:/Users/okefu/OneDrive/Desktop/layo-hair-app\" status)",
+      "Bash(git config:*)",
+      "Bash(bash -c 'cd \"\"/c/Users/okefu/OneDrive/Desktop/layo-hair-app\"\" && pwd && git status')",
+      "Bash(git --git-dir=\"C:/Users/okefu/OneDrive/Desktop/layo-hair-app/.git\" --work-tree=\"C:/Users/okefu/OneDrive/Desktop/layo-hair-app\" status:*)",
+      "Bash(powershell -Command \"cd ''C:\\\\Users\\\\okefu\\\\OneDrive\\\\Desktop\\\\layo-hair-app''; git status\")",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(for dir in \"C:/Users/okefu/OneDrive/Desktop/layo-hair-app/styles\"/*/)",
+      "Bash(npx dotenv:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsx:*)"
+    ]
+  }
+}

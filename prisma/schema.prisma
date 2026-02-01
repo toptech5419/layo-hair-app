@@ -1,0 +1,297 @@
+// LAYO HAIR - Database Schema
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// USER MODEL
+// Supports guest bookings and registered users
+// ============================================
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?   // null for OAuth users
+  name          String
+  phone         String?
+  image         String?
+  role          Role      @default(CUSTOMER)
+
+  // Relations
+  bookings        Booking[]      @relation("CustomerBookings")
+  stylistBookings Booking[]      @relation("StylistBookings")
+  availability    Availability[]
+  reviews         Review[]
+
+  // NextAuth fields
+  accounts Account[]
+  sessions Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  CUSTOMER
+  STYLIST
+  ADMIN
+}
+
+// ============================================
+// NEXTAUTH MODELS
+// Required for authentication
+// ============================================
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// STYLE MODEL
+// Hairstyle catalog with categories
+// ============================================
+model Style {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String   @db.Text
+  category    Category
+  price       Decimal  @db.Decimal(10, 2)
+  duration    Int      // Duration in minutes
+  images      String[] // Array of image URLs
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+
+  // Relations
+  bookings Booking[]
+  reviews  Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+  @@index([isFeatured])
+}
+
+enum Category {
+  BRAIDS
+  CORNROWS
+  TWISTS
+  LOCS
+  NATURAL
+  WEAVES
+  WIGS
+  TREATMENTS
+  OTHER
+}
+
+// ============================================
+// BOOKING MODEL
+// Appointment records with guest support
+// ============================================
+model Booking {
+  id         String @id @default(cuid())
+  bookingRef String @unique @default(cuid()) // Public reference for customers
+
+  // Customer info (supports guest booking - no account required)
+  customerId String?
+  customer   User?   @relation("CustomerBookings", fields: [customerId], references: [id])
+  guestEmail String? // For non-registered users
+  guestName  String?
+  guestPhone String?
+
+  // Booking details
+  styleId   String
+  style     Style  @relation(fields: [styleId], references: [id])
+  stylistId String?
+  stylist   User?  @relation("StylistBookings", fields: [stylistId], references: [id])
+
+  // Timing
+  date      DateTime @db.Date
+  startTime String   // "09:00" format
+  endTime   String   // "10:30" format
+
+  // Status & pricing
+  status     BookingStatus @default(PENDING)
+  totalPrice Decimal       @db.Decimal(10, 2)
+  notes      String?       @db.Text
+
+  // Notifications tracking
+  confirmationSent Boolean @default(false)
+  reminderSent     Boolean @default(false)
+
+  // Relations
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@index([status])
+  @@index([customerId])
+  @@index([bookingRef])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ============================================
+// AVAILABILITY MODEL
+// Working hours for the salon/stylists
+// ============================================
+model Availability {
+  id          String  @id @default(cuid())
+  stylistId   String? // null = salon-wide default
+  stylist     User?   @relation(fields: [stylistId], references: [id])
+  dayOfWeek   Int     // 0=Sunday, 1=Monday, ..., 6=Saturday
+  startTime   String  // "09:00" format
+  endTime     String  // "18:00" format
+  isAvailable Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([stylistId, dayOfWeek])
+}
+
+// ============================================
+// BLOCKED DATES MODEL
+// Holidays, closures, time off
+// ============================================
+model BlockedDate {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  reason    String?
+  stylistId String?  // null = whole salon closed
+
+  createdAt DateTime @default(now())
+
+  @@unique([date, stylistId])
+  @@index([date])
+}
+
+// ============================================
+// REVIEW MODEL
+// Customer feedback (Phase 2)
+// ============================================
+model Review {
+  id      String   @id @default(cuid())
+  rating  Int      // 1-5 stars
+  comment String?  @db.Text
+  images  String[] // Optional review photos
+
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id])
+  styleId    String
+  style      Style  @relation(fields: [styleId], references: [id])
+
+  isApproved Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([styleId])
+  @@index([isApproved])
+}
+
+// ============================================
+// PAYMENT MODEL
+// Stripe payment tracking
+// ============================================
+model Payment {
+  id              String        @id @default(cuid())
+  bookingId       String
+  booking         Booking       @relation(fields: [bookingId], references: [id])
+
+  // Stripe details
+  stripeSessionId   String?     @unique
+  stripePaymentId   String?     @unique
+
+  // Payment info
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("gbp")
+  paymentType     PaymentType   @default(FULL)
+  status          PaymentStatus @default(PENDING)
+
+  // Metadata
+  customerEmail   String?
+  receiptUrl      String?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([bookingId])
+  @@index([stripeSessionId])
+  @@index([status])
+}
+
+enum PaymentType {
+  DEPOSIT
+  FULL
+  BALANCE
+  REFUND
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// ============================================
+// SETTINGS MODEL
+// Salon configuration
+// ============================================
+model Settings {
+  id                String  @id @default("default")
+  salonName         String  @default("LAYO HAIR")
+  salonEmail        String
+  salonPhone        String?
+  salonAddress      String?
+  bookingBuffer     Int     @default(30) // Minutes between bookings
+  maxAdvanceBooking Int     @default(30) // Days in advance allowed
+  minAdvanceBooking Int     @default(2)  // Hours minimum notice required
+
+  updatedAt DateTime @updatedAt
+}
