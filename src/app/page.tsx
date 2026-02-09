@@ -23,7 +23,7 @@ export default function HomePage() {
               alt="Stitch braids hairstyle"
               fill
               priority
-              className="object-cover object-top"
+              className="object-cover object-top md:object-[50%_25%]"
               sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
