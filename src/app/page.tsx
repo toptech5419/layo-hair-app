@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/layout/header";
@@ -13,17 +14,21 @@ export default function HomePage() {
       <Header />
 
       <main className="flex-1">
-        {/* Hero Section - African Braids Background */}
-        <section className="relative min-h-[100vh] md:min-h-[90vh] flex items-end md:items-center overflow-hidden pb-8 md:pb-0">
-          {/* Background Image - Bob Boho Braids - Responsive positioning */}
-          <div
-            className="absolute inset-0 bg-cover bg-top bg-no-repeat"
-            style={{
-              backgroundImage: `url('https://res.cloudinary.com/dtji1dxj5/image/upload/q_auto,f_auto/layo-hair/styles/short-boho-braids/p69dfasbunubdchtgfhz.jpg')`,
-            }}
-          />
+        {/* Hero Section - Stitch Braids Background */}
+        <section className="relative min-h-[100vh] md:min-h-[90vh] flex items-end md:items-center overflow-hidden pb-8 md:pb-0 bg-black">
+          {/* Background Image - Mobile: cover full screen, Desktop: contain on right side */}
+          <div className="absolute inset-0 md:left-auto md:w-[55%]">
+            <Image
+              src="/hero-stitch-braids.jpg"
+              alt="Stitch braids hairstyle"
+              fill
+              priority
+              className="object-cover object-top md:object-contain md:object-right"
+              sizes="(max-width: 768px) 100vw, 55vw"
+            />
+          </div>
           {/* Gradient Overlay - Stronger on mobile for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/95 via-black/70 to-black/30 md:from-black/90 md:via-black/60 md:to-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/95 via-black/70 to-black/30 md:from-black/90 md:via-black/50 md:to-transparent" />
 
           {/* Content */}
           <div className="container mx-auto px-4 relative z-10">
