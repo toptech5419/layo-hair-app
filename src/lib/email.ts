@@ -3,6 +3,10 @@ import { Resend } from "resend";
 // Use Resend's test email for now. Replace with your verified domain later.
 const FROM_EMAIL = "Layo Hair <onboarding@resend.dev>";
 
+// Business email - receives all booking notifications
+// This is the only email we can send to with Resend's test domain
+const BUSINESS_EMAIL = "layohair5@gmail.com";
+
 // Lazy initialization to avoid crash when API key is missing
 function getResendClient() {
   if (!process.env.RESEND_API_KEY) {
@@ -14,6 +18,7 @@ function getResendClient() {
 interface BookingEmailData {
   customerName: string;
   customerEmail: string;
+  customerPhone?: string;
   bookingRef: string;
   styleName: string;
   date: string;
@@ -35,6 +40,7 @@ export async function sendBookingConfirmation(data: BookingEmailData) {
   const {
     customerName,
     customerEmail,
+    customerPhone,
     bookingRef,
     styleName,
     date,
@@ -52,10 +58,12 @@ export async function sendBookingConfirmation(data: BookingEmailData) {
     }).format(amount);
 
   try {
+    // TEMPORARY: Send to business email only (Resend test domain limitation)
+    // TODO: When custom domain is verified, send to customerEmail directly
     const { data: emailData, error } = await resend.emails.send({
       from: FROM_EMAIL,
-      to: customerEmail,
-      subject: `Booking Confirmed - ${bookingRef}`,
+      to: BUSINESS_EMAIL,
+      subject: `🎉 New Booking! ${bookingRef} - ${customerName}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -68,16 +76,29 @@ export async function sendBookingConfirmation(data: BookingEmailData) {
             <!-- Header -->
             <div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); padding: 30px; text-align: center;">
               <h1 style="color: #000; margin: 0; font-size: 28px; font-weight: bold;">LAYO HAIR</h1>
-              <p style="color: #000; margin: 10px 0 0 0; font-size: 14px;">Professional Hair Styling</p>
+              <p style="color: #000; margin: 10px 0 0 0; font-size: 14px;">New Booking Notification</p>
+            </div>
+
+            <!-- Alert Banner -->
+            <div style="background-color: #22c55e; padding: 15px; text-align: center;">
+              <p style="color: #fff; margin: 0; font-size: 16px; font-weight: bold;">💰 New Booking Received!</p>
             </div>
 
             <!-- Content -->
             <div style="padding: 30px;">
               <h2 style="color: #FFD700; margin: 0 0 20px 0; font-size: 24px;">Booking Confirmed!</h2>
 
+              <!-- Customer Contact Info - Important for business -->
+              <div style="background-color: #1a1a1a; border: 2px solid #22c55e; border-radius: 12px; padding: 20px; margin: 0 0 20px 0;">
+                <h3 style="color: #22c55e; margin: 0 0 15px 0; font-size: 16px;">📞 Customer Contact</h3>
+                <p style="color: #fff; margin: 0 0 8px 0;"><strong>Name:</strong> ${customerName}</p>
+                <p style="color: #fff; margin: 0 0 8px 0;"><strong>Email:</strong> <a href="mailto:${customerEmail}" style="color: #FFD700;">${customerEmail}</a></p>
+                ${customerPhone ? `<p style="color: #fff; margin: 0 0 8px 0;"><strong>Phone:</strong> <a href="tel:${customerPhone}" style="color: #FFD700;">${customerPhone}</a></p>` : ""}
+                <p style="color: #999; margin: 10px 0 0 0; font-size: 12px;">⚠️ Please contact the customer to confirm their booking via WhatsApp/call</p>
+              </div>
+
               <p style="color: #ccc; margin: 0 0 20px 0; line-height: 1.6;">
-                Hi ${customerName},<br><br>
-                Thank you for booking with Layo Hair! Your appointment has been confirmed.
+                ${customerName} has booked an appointment with Layo Hair.
               </p>
 
               <!-- Booking Reference -->

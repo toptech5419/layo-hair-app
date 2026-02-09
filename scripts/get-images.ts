@@ -1,5 +1,6 @@
 import * as dotenv from "dotenv";
-dotenv.config({ path: ".env.local" });
+import * as path from "path";
+dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
@@ -17,20 +18,25 @@ async function main() {
   const adapter = new PrismaPg(pool);
   const prisma = new PrismaClient({ adapter });
 
-  const styles = await prisma.style.findMany({
-    where: { isFeatured: true },
-    select: { name: true, slug: true, images: true },
-    take: 5,
+  const style = await prisma.style.findFirst({
+    where: { slug: "lemonade-braids" },
+    select: { name: true, images: true }
   });
 
-  console.log("\n🖼️  Featured Style Images:\n");
-  styles.forEach((s) => {
-    console.log(`📌 ${s.name}`);
-    console.log(`   ${s.images[0]}`);
-    console.log("");
-  });
+  if (style) {
+    console.log("Style:", style.name);
+    console.log("Images:");
+    style.images.forEach((img, i) => console.log(`  ${i + 1}: ${img}`));
+  } else {
+    console.log("Lemonade braids style not found");
+    // List all styles
+    const all = await prisma.style.findMany({ select: { slug: true, name: true } });
+    console.log("\nAll styles:");
+    all.forEach(s => console.log(`  - ${s.slug}: ${s.name}`));
+  }
 
   await prisma.$disconnect();
   await pool.end();
 }
+
 main();

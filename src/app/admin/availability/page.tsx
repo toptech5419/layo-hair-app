@@ -1,4 +1,4 @@
-import { Clock, CalendarOff, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { Button } from "@/components/ui/button";
@@ -54,25 +54,26 @@ export default async function AdminAvailabilityPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-zinc-950">
       <AdminSidebar user={user} />
 
       <main className="lg:ml-64 pt-16 lg:pt-0">
-        <div className="p-6 lg:p-8">
+        <div className="p-4 lg:p-6">
           {/* Page Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-white">
+              <h1 className="text-xl lg:text-2xl font-bold text-white">
                 Availability
               </h1>
-              <p className="text-white/60 mt-1">
+              <p className="text-white/50 text-sm mt-1">
                 Set your working hours and block specific dates
               </p>
             </div>
             <Link href="/admin/availability">
               <Button
                 variant="outline"
-                className="border-[#FFD700]/30 text-[#FFD700]"
+                size="sm"
+                className="border-white/[0.06] text-white/60 hover:text-white"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
@@ -85,25 +86,6 @@ export default async function AdminAvailabilityPage() {
             initialSchedule={scheduleData}
             initialBlocked={blockedData}
           />
-
-          {/* Tips */}
-          <div className="mt-6 p-4 bg-[#FFD700]/10 border border-[#FFD700]/20 rounded-xl">
-            <h3 className="text-[#FFD700] font-semibold mb-2">Tips</h3>
-            <ul className="text-white/60 text-sm space-y-1">
-              <li>
-                • Set your regular working hours for each day of the week
-              </li>
-              <li>
-                • Block specific dates for holidays, vacations, or when fully
-                booked
-              </li>
-              <li>
-                • Customers will only be able to book within your available
-                hours
-              </li>
-              <li>• Remember to save your changes after making updates</li>
-            </ul>
-          </div>
         </div>
       </main>
     </div>

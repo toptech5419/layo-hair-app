@@ -3,15 +3,26 @@ import { headers } from "next/headers";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { sendBookingConfirmation } from "@/lib/email";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2026-01-28.clover",
-});
+import { stripe, isStripeConfigured } from "@/lib/stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Stripe is configured
+    if (!isStripeConfigured()) {
+      console.log("Stripe webhook received but Stripe is not configured");
+      return NextResponse.json({ received: true, mode: "mock" });
+    }
+
+    if (!webhookSecret) {
+      console.error("STRIPE_WEBHOOK_SECRET is not configured");
+      return NextResponse.json(
+        { error: "Webhook not configured" },
+        { status: 500 }
+      );
+    }
+
     const body = await request.text();
     const headersList = await headers();
     const signature = headersList.get("stripe-signature");
@@ -123,7 +134,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
     console.log(`Booking ${bookingRef} confirmed`);
 
-    // Send confirmation email
+    // Send confirmation email (only if not already sent)
+    if (booking.confirmationSent) {
+      console.log(`Confirmation email already sent for ${bookingRef} - skipping`);
+      return;
+    }
+
     const amountPaid = booking.payments.reduce(
       (sum, p) => sum + Number(p.amount),
       0
@@ -134,6 +150,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     const emailResult = await sendBookingConfirmation({
       customerName: booking.guestName || "Customer",
       customerEmail: booking.guestEmail || "",
+      customerPhone: booking.guestPhone || undefined,
       bookingRef: booking.bookingRef,
       styleName: booking.style.name,
       date: booking.date.toLocaleDateString("en-GB", {

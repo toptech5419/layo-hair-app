@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -62,10 +62,14 @@ function getNext7Days() {
 
 export default function BookPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preSelectedStyle = searchParams.get("style"); // e.g., "french-curls"
+
   const [step, setStep] = useState(1);
   const [styles, setStyles] = useState<Style[]>([]);
   const [isLoadingStyles, setIsLoadingStyles] = useState(true);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", notes: "" });
@@ -75,6 +79,7 @@ export default function BookPage() {
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [isDateBlocked, setIsDateBlocked] = useState(false);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const continueButtonRef = useRef<HTMLDivElement>(null);
 
   // Fetch styles from database
   useEffect(() => {
@@ -88,6 +93,18 @@ export default function BookPage() {
       .catch((err) => console.error("Error fetching styles:", err))
       .finally(() => setIsLoadingStyles(false));
   }, []);
+
+  // Auto-select style from URL parameter and skip to step 2
+  useEffect(() => {
+    if (preSelectedStyle && styles.length > 0 && !hasAutoSelected) {
+      const matchedStyle = styles.find((s) => s.slug === preSelectedStyle);
+      if (matchedStyle) {
+        setSelectedStyle(matchedStyle.id);
+        setStep(2); // Skip directly to date/time selection
+        setHasAutoSelected(true);
+      }
+    }
+  }, [preSelectedStyle, styles, hasAutoSelected]);
 
   const days = getNext7Days();
   const selectedStyleData = styles.find((s) => s.id === selectedStyle);
@@ -183,7 +200,13 @@ export default function BookPage() {
     }
 
     // All retries failed
-    setError(`An error occurred with our connection to Stripe. Request was retried ${maxRetries} times. Please check your internet connection and try again.`);
+    if (lastError.includes("configuration error") || lastError.includes("503")) {
+      setError("Our payment system is currently being configured. Please try again later or contact us directly to book.");
+    } else if (lastError.includes("connection") || lastError.includes("network")) {
+      setError("Unable to connect to our payment provider. Please check your internet connection and try again.");
+    } else {
+      setError(`Something went wrong: ${lastError}. Please try again or contact us for assistance.`);
+    }
     setIsProcessing(false);
   };
 
@@ -248,7 +271,13 @@ export default function BookPage() {
                   {styles.map((style) => (
                     <button
                       key={style.id}
-                      onClick={() => setSelectedStyle(style.id)}
+                      onClick={() => {
+                        setSelectedStyle(style.id);
+                        // Scroll to continue button after selection
+                        setTimeout(() => {
+                          continueButtonRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                        }, 100);
+                      }}
                       className={`p-4 rounded-xl border-2 transition-all text-left ${
                         selectedStyle === style.id
                           ? "border-[#FFD700] bg-[#FFD700]/10"
@@ -536,14 +565,19 @@ export default function BookPage() {
           )}
 
           {/* Navigation */}
-          <div className="flex justify-between mt-12">
+          <div ref={continueButtonRef} className="flex justify-between mt-12">
             <Button
               variant="outline"
-              onClick={() => setStep(step - 1)}
-              disabled={step === 1}
-              className="border-zinc-700 text-white hover:bg-zinc-800 disabled:opacity-30"
+              onClick={() => {
+                if (step === 1) {
+                  router.push("/");
+                } else {
+                  setStep(step - 1);
+                }
+              }}
+              className="border-zinc-700 text-white hover:bg-zinc-800"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" /> Back
+              <ArrowLeft className="w-4 h-4 mr-2" /> {step === 1 ? "Home" : "Back"}
             </Button>
 
             {step < 4 && (

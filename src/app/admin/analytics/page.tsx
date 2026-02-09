@@ -9,7 +9,6 @@ import {
   CheckCircle,
   ArrowUpRight,
   RefreshCw,
-  BarChart3,
 } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { Button } from "@/components/ui/button";
@@ -175,25 +174,26 @@ export default async function AnalyticsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-zinc-950">
       <AdminSidebar user={user} />
 
       <main className="lg:ml-64 pt-16 lg:pt-0">
-        <div className="p-6 lg:p-8">
+        <div className="p-4 lg:p-6">
           {/* Page Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-white">
+              <h1 className="text-xl lg:text-2xl font-bold text-white">
                 Analytics
               </h1>
-              <p className="text-white/60 mt-1">
+              <p className="text-white/50 text-sm mt-1">
                 Track your business performance
               </p>
             </div>
             <Link href="/admin/analytics">
               <Button
                 variant="outline"
-                className="border-[#FFD700]/30 text-[#FFD700]"
+                size="sm"
+                className="border-white/[0.06] text-white/60 hover:text-white"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
@@ -202,7 +202,7 @@ export default async function AnalyticsPage() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
             <StatCard
               title="Today's Bookings"
               value={todayBookings.toString()}
@@ -238,13 +238,13 @@ export default async function AnalyticsPage() {
           </div>
 
           {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Popular Styles */}
-            <div className="bg-zinc-900 rounded-xl border border-[#FFD700]/10 p-6">
-              <h3 className="text-lg font-semibold text-white mb-2">
+            <div className="bg-zinc-900 rounded-xl border border-white/[0.06] p-4">
+              <h3 className="text-sm font-semibold text-white mb-1">
                 Popular Styles
               </h3>
-              <p className="text-white/50 text-sm mb-4">
+              <p className="text-white/40 text-xs mb-3">
                 Most booked styles
               </p>
 
@@ -278,8 +278,8 @@ export default async function AnalyticsPage() {
             </div>
 
             {/* Booking Status */}
-            <div className="bg-zinc-900 rounded-xl border border-[#FFD700]/10 p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">
+            <div className="bg-zinc-900 rounded-xl border border-white/[0.06] p-4">
+              <h3 className="text-sm font-semibold text-white mb-3">
                 Booking Status
               </h3>
 
@@ -348,8 +348,8 @@ export default async function AnalyticsPage() {
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-zinc-900 rounded-xl border border-[#FFD700]/10 p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">
+            <div className="bg-zinc-900 rounded-xl border border-white/[0.06] p-4">
+              <h3 className="text-sm font-semibold text-white mb-3">
                 Recent Activity
               </h3>
 
@@ -401,37 +401,6 @@ export default async function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Summary Stats */}
-          <div className="bg-zinc-900 rounded-xl border border-[#FFD700]/10 p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">
-              Summary
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div>
-                <p className="text-white/50 text-sm">Total Bookings</p>
-                <p className="text-2xl font-bold text-white">{totalBookings}</p>
-              </div>
-              <div>
-                <p className="text-white/50 text-sm">Total Revenue</p>
-                <p className="text-2xl font-bold text-[#FFD700]">
-                  {formatCurrency(monthRevenue)}
-                </p>
-              </div>
-              <div>
-                <p className="text-white/50 text-sm">Unique Customers</p>
-                <p className="text-2xl font-bold text-white">
-                  {totalCustomers.length}
-                </p>
-              </div>
-              <div>
-                <p className="text-white/50 text-sm">Avg Rating</p>
-                <p className="text-2xl font-bold text-white flex items-center gap-1">
-                  {avgRating.toFixed(1)}
-                  <Star className="w-5 h-5 text-[#FFD700] fill-[#FFD700]" />
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </main>
     </div>
@@ -453,7 +422,7 @@ function StatCard({
   compact?: boolean;
 }) {
   return (
-    <div className="bg-zinc-900 rounded-xl border border-[#FFD700]/10 p-4">
+    <div className="bg-zinc-900 rounded-xl border border-white/[0.06] p-4">
       <div className="flex items-center justify-between mb-2">
         <div className="w-8 h-8 bg-[#FFD700]/10 rounded-lg flex items-center justify-center text-[#FFD700]">
           {icon}

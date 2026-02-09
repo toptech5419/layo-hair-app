@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe, formatAmountForStripe } from "@/lib/stripe";
+import { stripe, formatAmountForStripe, isStripeConfigured } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { sendBookingConfirmation } from "@/lib/email";
 
@@ -101,8 +101,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Check if Stripe is configured
-    if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === "sk_test_your_secret_key_here") {
+    // Check if Stripe is properly configured
+    if (!isStripeConfigured()) {
       // Create mock payment record
       await prisma.payment.create({
         data: {
@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
       await sendBookingConfirmation({
         customerName,
         customerEmail,
+        customerPhone,
         bookingRef,
         styleName,
         date: appointmentDate,
@@ -204,9 +205,30 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("Checkout error:", error);
+
+    // Provide more specific error messages based on error type
+    let errorMessage = "Failed to create checkout session";
+    let statusCode = 500;
+
+    if (error.type === "StripeAuthenticationError") {
+      errorMessage = "Payment system configuration error. Please contact support.";
+      statusCode = 503;
+    } else if (error.type === "StripeConnectionError") {
+      errorMessage = "Unable to connect to payment provider. Please try again.";
+      statusCode = 503;
+    } else if (error.type === "StripeRateLimitError") {
+      errorMessage = "Too many requests. Please wait a moment and try again.";
+      statusCode = 429;
+    } else if (error.type === "StripeInvalidRequestError") {
+      errorMessage = "Invalid payment request. Please try again.";
+      statusCode = 400;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
     return NextResponse.json(
-      { error: error.message || "Failed to create checkout session" },
-      { status: 500 }
+      { error: errorMessage },
+      { status: statusCode }
     );
   }
 }

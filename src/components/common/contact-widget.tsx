@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   MessageCircle,
@@ -12,264 +13,282 @@ import {
   Clock,
   ChevronRight,
   MapPin,
+  Send,
 } from "lucide-react";
 
-// Business configuration
 const BUSINESS_CONFIG = {
   name: "LAYO HAIR",
   phone: "+447350167537",
+  phoneDisplay: "+44 7350 167537",
   whatsapp: "+447350167537",
-  email: "hello@layohair.com",
-  // Business hours: 9am-7pm every day
+  email: "layohair5@gmail.com",
   hours: {
-    open: 9, // 9 AM
-    close: 19, // 7 PM (19:00)
-    days: [0, 1, 2, 3, 4, 5, 6], // Sunday (0) to Saturday (6) - all days
+    open: 9,
+    close: 19,
+    days: [0, 1, 2, 3, 4, 5, 6],
   },
-  location: "Lincoln, LN1 1RP",
+  location: "Lincoln, LN1 1RP, UK",
   defaultMessage: "Hi! I'd like to book an appointment at LAYO HAIR.",
 };
 
-// Check if business is currently open
+// Pages where the widget should be completely hidden
+const HIDDEN_PAGES = ["/admin"];
+
+// Pages where the notification tooltip should NOT pop up (user is already engaged)
+const NO_NOTIFICATION_PAGES = ["/book", "/contact"];
+
 function isBusinessOpen(): boolean {
   const now = new Date();
   const day = now.getDay();
   const hour = now.getHours();
-
-  const isOpenDay = BUSINESS_CONFIG.hours.days.includes(day);
-  const isOpenHour =
-    hour >= BUSINESS_CONFIG.hours.open && hour < BUSINESS_CONFIG.hours.close;
-
-  return isOpenDay && isOpenHour;
+  return BUSINESS_CONFIG.hours.days.includes(day) && hour >= BUSINESS_CONFIG.hours.open && hour < BUSINESS_CONFIG.hours.close;
 }
 
-// Get status message
 function getStatusMessage(): string {
   const now = new Date();
   const hour = now.getHours();
 
   if (isBusinessOpen()) {
     const hoursLeft = BUSINESS_CONFIG.hours.close - hour;
-    if (hoursLeft <= 2) {
-      return `Closing in ${hoursLeft} hour${hoursLeft > 1 ? "s" : ""}`;
-    }
+    if (hoursLeft <= 2) return `Closing in ${hoursLeft}hr${hoursLeft > 1 ? "s" : ""}`;
     return "We're open now!";
   }
 
-  // Calculate when we open next
-  if (hour < BUSINESS_CONFIG.hours.open) {
-    return `Opens at ${BUSINESS_CONFIG.hours.open}am today`;
-  }
+  if (hour < BUSINESS_CONFIG.hours.open) return `Opens at ${BUSINESS_CONFIG.hours.open}am today`;
   return `Opens at ${BUSINESS_CONFIG.hours.open}am tomorrow`;
 }
 
-// Contact options
-const contactOptions = [
-  {
-    id: "whatsapp",
-    label: "WhatsApp",
-    description: "Chat with us",
-    icon: MessageCircle,
-    color: "bg-[#25D366]",
-    hoverColor: "hover:bg-[#20BD5A]",
-    href: `https://wa.me/${BUSINESS_CONFIG.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(BUSINESS_CONFIG.defaultMessage)}`,
-    external: true,
-  },
-  {
-    id: "call",
-    label: "Call Us",
-    description: "Speak directly",
-    icon: Phone,
-    color: "bg-blue-500",
-    hoverColor: "hover:bg-blue-600",
-    href: `tel:${BUSINESS_CONFIG.phone}`,
-    external: false,
-  },
-  {
-    id: "email",
-    label: "Email",
-    description: "Send a message",
-    icon: Mail,
-    color: "bg-purple-500",
-    hoverColor: "hover:bg-purple-600",
-    href: `mailto:${BUSINESS_CONFIG.email}?subject=Booking Inquiry&body=${encodeURIComponent(BUSINESS_CONFIG.defaultMessage)}`,
-    external: false,
-  },
-];
-
-// Quick actions
-const quickActions = [
-  {
-    id: "book",
-    label: "Book Appointment",
-    icon: Calendar,
-    href: "/book",
-    primary: true,
-  },
-  {
-    id: "styles",
-    label: "View Styles",
-    icon: Scissors,
-    href: "/styles",
-    primary: false,
-  },
-];
-
 export function ContactWidget() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [showNotification, setShowNotification] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
-  // Update business status
+  // Check if notification was already shown/dismissed this session
+  const wasNotificationShown = useCallback(() => {
+    try {
+      return sessionStorage.getItem("layo-widget-notif-shown") === "true";
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const markNotificationShown = useCallback(() => {
+    try {
+      sessionStorage.setItem("layo-widget-notif-shown", "true");
+    } catch {
+      // sessionStorage not available
+    }
+  }, []);
+
+  // Update business hours status
   useEffect(() => {
     const updateStatus = () => {
       setIsOnline(isBusinessOpen());
       setStatusMessage(getStatusMessage());
     };
-
     updateStatus();
-    // Update every minute
     const interval = setInterval(updateStatus, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Show notification after 5 seconds if widget hasn't been opened
+  // Show notification tooltip - only once per session, only on relevant pages
   useEffect(() => {
+    if (isOpen || dismissed || wasNotificationShown()) return;
+
+    const isNoNotifPage = NO_NOTIFICATION_PAGES.some((p) => pathname.startsWith(p));
+    if (isNoNotifPage) return;
+
     const timer = setTimeout(() => {
       if (!isOpen) {
         setShowNotification(true);
+        markNotificationShown();
       }
-    }, 5000);
+    }, 15000);
 
     return () => clearTimeout(timer);
-  }, [isOpen]);
+  }, [isOpen, dismissed, pathname, wasNotificationShown, markNotificationShown]);
 
   // Hide notification when widget is opened
   useEffect(() => {
-    if (isOpen) {
-      setShowNotification(false);
-    }
+    if (isOpen) setShowNotification(false);
   }, [isOpen]);
+
+  // Close on escape key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
+  // Hide on admin pages
+  if (HIDDEN_PAGES.some((p) => pathname.startsWith(p))) return null;
+
+  const dismissNotification = () => {
+    setShowNotification(false);
+    setDismissed(true);
+  };
 
   return (
     <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
-      {/* Notification Badge */}
-      {showNotification && !isOpen && (
-        <div className="absolute -top-2 -left-2 animate-bounce">
-          <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-            1
-          </div>
-        </div>
+      {/* Backdrop on mobile when open */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm sm:hidden -z-10"
+          onClick={() => setIsOpen(false)}
+        />
       )}
 
-      {/* Tooltip when closed */}
+      {/* Tooltip when closed - shows once per session */}
       {showNotification && !isOpen && (
-        <div className="absolute bottom-16 right-0 w-48 animate-fade-in-up">
-          <div className="bg-white text-gray-800 text-sm p-3 rounded-lg shadow-lg">
-            <p className="font-medium">Need help booking?</p>
-            <p className="text-gray-500 text-xs mt-1">We typically reply instantly!</p>
-            <div className="absolute bottom-0 right-4 transform translate-y-1/2 rotate-45 w-3 h-3 bg-white" />
+        <div className="absolute bottom-[68px] right-0 w-52 animate-in slide-in-from-bottom-2 fade-in duration-300">
+          <div className="bg-zinc-900 border border-[#FFD700]/20 text-white text-sm p-3 rounded-xl shadow-2xl shadow-black/50 relative">
+            <button
+              onClick={dismissNotification}
+              className="absolute top-1.5 right-1.5 text-white/30 hover:text-white/60 transition-colors"
+            >
+              <X className="w-3 h-3" />
+            </button>
+            <p className="font-semibold text-[#FFD700]">Need help booking?</p>
+            <p className="text-white/50 text-xs mt-1">We typically reply instantly!</p>
+            <div className="absolute bottom-0 right-5 translate-y-1/2 rotate-45 w-3 h-3 bg-zinc-900 border-r border-b border-[#FFD700]/20" />
           </div>
         </div>
       )}
 
       {/* Main Widget Panel */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
+        <div className="absolute bottom-[68px] right-0 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-2xl shadow-2xl shadow-black/60 overflow-hidden animate-in slide-in-from-bottom-3 fade-in duration-300 border border-[#FFD700]/10">
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#FFD700] to-[#B8860B] p-4">
-            <div className="flex items-center justify-between">
+          <div className="bg-gradient-to-br from-[#FFD700] via-[#DAA520] to-[#B8860B] p-5 relative overflow-hidden">
+            <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
+            <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full bg-white/10" />
+
+            <div className="flex items-center justify-between relative">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-black/20 rounded-full flex items-center justify-center">
-                  <Scissors className="w-6 h-6 text-white" />
+                <div className="w-11 h-11 bg-black rounded-xl flex items-center justify-center shadow-lg">
+                  <Scissors className="w-5 h-5 text-[#FFD700]" />
                 </div>
                 <div>
-                  <p className="text-black font-bold">{BUSINESS_CONFIG.name}</p>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        isOnline ? "bg-green-500 animate-pulse" : "bg-gray-400"
-                      }`}
-                    />
-                    <p className="text-black/70 text-xs">{statusMessage}</p>
+                  <p className="text-black font-bold text-base tracking-wide">{BUSINESS_CONFIG.name}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-green-600 animate-pulse" : "bg-black/30"}`} />
+                    <p className="text-black/70 text-xs font-medium">{statusMessage}</p>
                   </div>
                 </div>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-black/60 hover:text-black p-2 -m-2 rounded-full hover:bg-black/10 transition-colors"
+                className="text-black/50 hover:text-black p-1.5 rounded-lg hover:bg-black/10 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          {/* Business Hours Banner */}
-          <div className="bg-gray-50 px-4 py-2 flex items-center gap-2 text-gray-600 text-sm border-b">
-            <Clock className="w-4 h-4" />
-            <span>Open daily: 9am - 7pm</span>
+          {/* Hours bar */}
+          <div className="bg-zinc-900 px-4 py-2.5 flex items-center justify-between border-b border-white/5">
+            <div className="flex items-center gap-2 text-white/50 text-xs">
+              <Clock className="w-3.5 h-3.5" />
+              <span>Open daily: 9am – 7pm</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-white/40 text-xs">
+              <MapPin className="w-3 h-3" />
+              <span>Lincoln, UK</span>
+            </div>
           </div>
 
           {/* Quick Actions */}
-          <div className="p-4 border-b bg-white">
-            <p className="text-gray-500 text-xs uppercase tracking-wider mb-3 font-medium">
-              Quick Actions
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {quickActions.map((action) => (
-                <Link
-                  key={action.id}
-                  href={action.href}
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-2 p-3 rounded-xl transition-all ${
-                    action.primary
-                      ? "bg-[#FFD700] text-black hover:bg-[#FFD700]/90 font-semibold"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  <action.icon className="w-4 h-4" />
-                  <span className="text-sm">{action.label}</span>
-                </Link>
-              ))}
+          <div className="p-4 bg-black border-b border-white/5">
+            <div className="grid grid-cols-2 gap-2.5">
+              <Link
+                href="/book"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 p-3.5 rounded-xl bg-[#FFD700] text-black font-semibold text-sm hover:bg-[#FFD700]/90 transition-all active:scale-[0.98]"
+              >
+                <Calendar className="w-4.5 h-4.5" />
+                Book Now
+              </Link>
+              <Link
+                href="/styles"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 p-3.5 rounded-xl bg-zinc-900 text-white/80 text-sm hover:bg-zinc-800 border border-white/10 transition-all active:scale-[0.98]"
+              >
+                <Scissors className="w-4.5 h-4.5" />
+                View Styles
+              </Link>
             </div>
           </div>
 
           {/* Contact Options */}
-          <div className="p-4 bg-white">
-            <p className="text-gray-500 text-xs uppercase tracking-wider mb-3 font-medium">
-              Contact Us
+          <div className="p-4 bg-black">
+            <p className="text-white/30 text-[10px] uppercase tracking-[0.15em] font-semibold mb-3">
+              Get in Touch
             </p>
-            <div className="space-y-2">
-              {contactOptions.map((option) => (
-                <a
-                  key={option.id}
-                  href={option.href}
-                  target={option.external ? "_blank" : undefined}
-                  rel={option.external ? "noopener noreferrer" : undefined}
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors group"
-                >
-                  <div
-                    className={`w-10 h-10 ${option.color} rounded-full flex items-center justify-center transition-transform group-hover:scale-110`}
-                  >
-                    <option.icon className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-gray-800 font-medium text-sm">
-                      {option.label}
-                    </p>
-                    <p className="text-gray-500 text-xs">{option.description}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all" />
-                </a>
-              ))}
+            <div className="space-y-1.5">
+              {/* WhatsApp */}
+              <a
+                href={`https://wa.me/${BUSINESS_CONFIG.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(BUSINESS_CONFIG.defaultMessage)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-zinc-900 transition-all group active:scale-[0.98]"
+              >
+                <div className="w-10 h-10 bg-[#25D366] rounded-xl flex items-center justify-center shadow-lg shadow-[#25D366]/20 group-hover:scale-110 transition-transform">
+                  <MessageCircle className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-medium text-sm">WhatsApp</p>
+                  <p className="text-white/40 text-xs">Chat with us instantly</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-[#FFD700] group-hover:translate-x-0.5 transition-all" />
+              </a>
+
+              {/* Call */}
+              <a
+                href={`tel:${BUSINESS_CONFIG.phone}`}
+                className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-zinc-900 transition-all group active:scale-[0.98]"
+              >
+                <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
+                  <Phone className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-medium text-sm">Call Us</p>
+                  <p className="text-white/40 text-xs">{BUSINESS_CONFIG.phoneDisplay}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-[#FFD700] group-hover:translate-x-0.5 transition-all" />
+              </a>
+
+              {/* Email */}
+              <a
+                href={`mailto:${BUSINESS_CONFIG.email}?subject=Booking%20Inquiry&body=${encodeURIComponent(BUSINESS_CONFIG.defaultMessage)}`}
+                className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-zinc-900 transition-all group active:scale-[0.98]"
+              >
+                <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20 group-hover:scale-110 transition-transform">
+                  <Mail className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-medium text-sm">Email</p>
+                  <p className="text-white/40 text-xs truncate">{BUSINESS_CONFIG.email}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-[#FFD700] group-hover:translate-x-0.5 transition-all" />
+              </a>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 px-4 py-3 flex items-center gap-2 text-gray-500 text-xs">
-            <MapPin className="w-3 h-3" />
-            <span>{BUSINESS_CONFIG.location}</span>
+          <div className="bg-zinc-950 px-4 py-3 flex items-center justify-between">
+            <p className="text-white/20 text-[10px]">Powered by LAYO HAIR</p>
+            <Link
+              href="/contact"
+              onClick={() => setIsOpen(false)}
+              className="text-[#FFD700]/60 hover:text-[#FFD700] text-[10px] font-medium flex items-center gap-1 transition-colors"
+            >
+              More options <Send className="w-2.5 h-2.5" />
+            </Link>
           </div>
         </div>
       )}
@@ -277,33 +296,24 @@ export function ContactWidget() {
       {/* Main Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`relative w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
+        className={`relative w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 ${
           isOpen
-            ? "bg-gray-700 hover:bg-gray-800 rotate-0"
-            : "bg-gradient-to-r from-[#FFD700] to-[#B8860B] hover:scale-110"
+            ? "bg-zinc-800 hover:bg-zinc-700 border border-white/10"
+            : "bg-gradient-to-br from-[#FFD700] to-[#B8860B] hover:scale-110 hover:shadow-[#FFD700]/30 hover:shadow-2xl"
         }`}
-        aria-label="Contact us"
+        aria-label={isOpen ? "Close contact menu" : "Contact us"}
       >
         {isOpen ? (
-          <X className="w-6 h-6 text-white" />
+          <X className="w-6 h-6 text-white transition-transform duration-200" />
         ) : (
-          <MessageCircle className="w-7 h-7 text-black" />
+          <MessageCircle className="w-7 h-7 text-black transition-transform duration-200" />
         )}
 
-        {/* Online indicator on button */}
+        {/* Online indicator */}
         {!isOpen && (
-          <span
-            className={`absolute top-0 right-0 w-4 h-4 rounded-full border-2 border-white ${
-              isOnline ? "bg-green-500" : "bg-gray-400"
-            }`}
-          />
+          <span className={`absolute top-0 right-0 w-4 h-4 rounded-full border-2 border-black ${isOnline ? "bg-green-500" : "bg-zinc-500"}`} />
         )}
       </button>
-
-      {/* Pulse animation when closed */}
-      {!isOpen && (
-        <span className="absolute inset-0 rounded-full bg-[#FFD700] animate-ping opacity-20 pointer-events-none" />
-      )}
     </div>
   );
 }

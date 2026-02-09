@@ -1,7 +1,18 @@
 import Stripe from "stripe";
 
+// Check if Stripe is properly configured
+export function isStripeConfigured(): boolean {
+  const key = process.env.STRIPE_SECRET_KEY;
+  return !!(
+    key &&
+    key !== "sk_test_your_secret_key_here" &&
+    (key.startsWith("sk_test_") || key.startsWith("sk_live_"))
+  );
+}
+
 // Server-side Stripe instance
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+// Only create if properly configured to avoid initialization errors
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_placeholder", {
   apiVersion: "2026-01-28.clover",
   typescript: true,
 });

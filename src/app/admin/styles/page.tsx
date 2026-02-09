@@ -37,11 +37,11 @@ export default async function AdminStylesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-zinc-950">
       <AdminSidebar user={user} />
 
       <main className="lg:ml-64 pt-16 lg:pt-0">
-        <div className="p-6 lg:p-8">
+        <div className="p-4 lg:p-6">
           <StylesClient
             styles={serializedStyles}
             stats={stats}

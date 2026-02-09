@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
-import { sendBookingConfirmation } from "@/lib/email";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2026-01-28.clover",
@@ -61,25 +60,8 @@ export async function POST(request: NextRequest) {
 
             const balanceDue = Number(booking.totalPrice) - totalPaid;
 
-            // Send confirmation email
-            const paymentType = session.metadata?.paymentType || (balanceDue > 0 ? "deposit" : "full");
-            await sendBookingConfirmation({
-              customerName: booking.guestName || "Customer",
-              customerEmail: booking.guestEmail || "",
-              bookingRef: booking.bookingRef,
-              styleName: booking.style.name,
-              date: booking.date.toLocaleDateString("en-GB", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric"
-              }),
-              time: booking.startTime,
-              totalPrice: Number(booking.totalPrice),
-              amountPaid: totalPaid,
-              balanceDue,
-              paymentType: paymentType as "deposit" | "full",
-            });
+            // Email is sent by the webhook handler (/api/webhook/stripe)
+            // No need to send here to avoid duplicates
 
             return NextResponse.json({
               success: true,

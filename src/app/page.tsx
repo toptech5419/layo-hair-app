@@ -15,11 +15,11 @@ export default function HomePage() {
       <main className="flex-1">
         {/* Hero Section - African Braids Background */}
         <section className="relative min-h-[100vh] md:min-h-[90vh] flex items-end md:items-center overflow-hidden pb-8 md:pb-0">
-          {/* Background Image - Bob Boho Braids - Responsive positioning */}
+          {/* Background Image - Lemonade Braids - Portrait optimized for mobile */}
           <div
             className="absolute inset-0 bg-cover bg-top md:bg-center bg-no-repeat"
             style={{
-              backgroundImage: `url('https://res.cloudinary.com/dtji1dxj5/image/upload/q_auto,f_auto/layo-hair/styles/short-boho-braids/p69dfasbunubdchtgfhz.jpg')`,
+              backgroundImage: `url('https://res.cloudinary.com/dtji1dxj5/image/upload/q_auto,f_auto/layo-hair/hero/lemonade-braids-hero.jpg')`,
             }}
           />
           {/* Gradient Overlay - Stronger on mobile for text readability */}
