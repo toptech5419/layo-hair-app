@@ -16,19 +16,21 @@ export default function HomePage() {
       <main className="flex-1">
         {/* Hero Section - Stitch Braids Background */}
         <section className="relative min-h-[100vh] md:min-h-[90vh] flex items-end md:items-center overflow-hidden pb-8 md:pb-0 bg-black">
-          {/* Background Image */}
-          <div className="absolute inset-0">
+          {/* Background Image - Full bleed on mobile, right half on desktop */}
+          <div className="absolute inset-0 md:left-auto md:w-1/2">
             <Image
               src="/hero-stitch-braids.jpg"
               alt="Stitch braids hairstyle"
               fill
               priority
               className="object-cover object-top"
-              sizes="100vw"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/95 via-black/70 to-black/30 md:from-black/90 md:via-black/60 md:to-black/30" />
+          {/* Gradient Overlay - Mobile: bottom-to-top for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-black/30 md:hidden" />
+          {/* Gradient Overlay - Desktop: left-to-right, dark text area fading into image */}
+          <div className="hidden md:block absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
 
           {/* Content */}
           <div className="container mx-auto px-4 relative z-10">
