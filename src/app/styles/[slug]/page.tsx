@@ -1,9 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, Check, ArrowRight, Scissors } from "lucide-react";
+import { Clock, Check, ArrowRight, Scissors } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { BackButton } from "@/components/common/back-button";
 import { Button } from "@/components/ui/button";
 import { Reviews } from "@/components/common/reviews";
 import { StarRating } from "@/components/common/star-rating";
@@ -67,12 +68,10 @@ export default async function StyleDetailPage({
       <main className="flex-1">
         {/* Breadcrumb */}
         <div className="container mx-auto px-4 py-4">
-          <Link
-            href="/styles"
+          <BackButton
+            label="Back to Styles"
             className="text-white/60 hover:text-[#FFD700] flex items-center gap-2 text-sm"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Styles
-          </Link>
+          />
         </div>
 
         {/* Style Detail */}

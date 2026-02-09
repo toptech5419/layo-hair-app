@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Star, Camera, X, Check, Upload } from "lucide-react";
@@ -22,6 +22,7 @@ const styles = [
 ];
 
 function ReviewForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedStyle = searchParams.get("style");
 
@@ -82,8 +83,8 @@ function ReviewForm() {
               <Button asChild className="bg-[#FFD700] text-black hover:bg-[#FFD700]/90">
                 <Link href={`/styles/${selectedStyle}`}>View Style</Link>
               </Button>
-              <Button asChild variant="outline" className="border-[#FFD700]/30 text-[#FFD700] hover:bg-[#FFD700]/10">
-                <Link href="/">Back to Home</Link>
+              <Button variant="outline" className="border-[#FFD700]/30 text-[#FFD700] hover:bg-[#FFD700]/10" onClick={() => router.back()}>
+                Back
               </Button>
             </div>
           </div>
@@ -99,13 +100,13 @@ function ReviewForm() {
       <main className="flex-1 py-12">
         <div className="container mx-auto px-4 max-w-2xl">
           {/* Back Link */}
-          <Link
-            href={selectedStyle ? `/styles/${selectedStyle}` : "/styles"}
+          <button
+            onClick={() => router.back()}
             className="inline-flex items-center gap-2 text-white/60 hover:text-[#FFD700] transition-colors mb-8"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
-          </Link>
+          </button>
 
           {/* Header */}
           <div className="text-center mb-10">

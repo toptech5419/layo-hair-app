@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Search,
@@ -128,6 +129,7 @@ function formatDuration(minutes: number) {
 }
 
 export default function TrackBookingPage() {
+  const router = useRouter();
   const [referenceCode, setReferenceCode] = useState("");
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [error, setError] = useState("");
@@ -200,13 +202,13 @@ export default function TrackBookingPage() {
       <main className="flex-1 py-12">
         <div className="container mx-auto px-4 max-w-2xl">
           {/* Back Link */}
-          <Link
-            href="/"
+          <button
+            onClick={() => router.back()}
             className="inline-flex items-center gap-2 text-white/60 hover:text-[#FFD700] transition-colors mb-8"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Home
-          </Link>
+            Back
+          </button>
 
           {/* Header */}
           <div className="text-center mb-10">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Check,
@@ -44,6 +44,7 @@ interface BookingData {
 }
 
 function SuccessContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
   const [booking, setBooking] = useState<BookingData | null>(null);
@@ -163,156 +164,6 @@ function SuccessContent() {
     return mins === 0 ? `${hours} hours` : `${hours}h ${mins}m`;
   };
 
-  const saveReceipt = () => {
-    if (!booking) return;
-
-    const payType = booking.payments[0]?.paymentType || "FULL";
-    const isDepositPayment = payType === "DEPOSIT";
-    const receiptDate = new Date().toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-    const receiptHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Receipt - ${booking.bookingRef}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; color: #111; padding: 20px; max-width: 420px; margin: 0 auto; }
-    .header { text-align: center; padding: 24px 0; border-bottom: 2px solid #FFD700; margin-bottom: 20px; }
-    .header h1 { font-size: 28px; font-weight: 800; letter-spacing: 2px; }
-    .header h1 span { color: #B8860B; }
-    .header p { color: #666; font-size: 12px; margin-top: 4px; }
-    .ref-box { background: #FFFDF0; border: 2px solid #FFD700; border-radius: 10px; padding: 16px; text-align: center; margin-bottom: 20px; }
-    .ref-box .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-    .ref-box .ref { font-size: 26px; font-weight: 800; color: #B8860B; letter-spacing: 3px; font-family: monospace; margin-top: 4px; }
-    .status { display: inline-block; background: #22c55e; color: #fff; font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .section { margin-bottom: 20px; }
-    .section-title { font-size: 13px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-    .row { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
-    .row:last-child { border-bottom: none; }
-    .row .label { color: #666; font-size: 13px; }
-    .row .value { font-weight: 600; font-size: 13px; text-align: right; }
-    .total-row { display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid #111; margin-top: 8px; }
-    .total-row .label { font-size: 15px; font-weight: 700; }
-    .total-row .value { font-size: 15px; font-weight: 800; }
-    .gold { color: #B8860B; }
-    .green { color: #22c55e; }
-    .balance-box { background: #FFFDF0; border: 1px solid #FFD700; border-radius: 8px; padding: 12px; margin-top: 12px; }
-    .footer { text-align: center; padding-top: 20px; border-top: 1px solid #eee; margin-top: 24px; }
-    .footer p { font-size: 11px; color: #999; line-height: 1.6; }
-    .footer .contact { color: #B8860B; font-weight: 600; }
-    @media print {
-      body { padding: 10px; }
-      @page { margin: 10mm; size: auto; }
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>LAYO <span>HAIR</span></h1>
-    <p>Professional Hair Styling</p>
-  </div>
-
-  <div style="text-align: center; margin-bottom: 16px;">
-    <span class="status">Confirmed</span>
-  </div>
-
-  <div class="ref-box">
-    <div class="label">Booking Reference</div>
-    <div class="ref">${booking.bookingRef}</div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Appointment Details</div>
-    <div class="row">
-      <span class="label">Style</span>
-      <span class="value">${booking.style.name}</span>
-    </div>
-    <div class="row">
-      <span class="label">Date</span>
-      <span class="value">${formatDate(booking.date)}</span>
-    </div>
-    <div class="row">
-      <span class="label">Time</span>
-      <span class="value">${formatTime(booking.startTime)}</span>
-    </div>
-    <div class="row">
-      <span class="label">Duration</span>
-      <span class="value">${formatDuration(booking.style.duration)}</span>
-    </div>
-    <div class="row">
-      <span class="label">Location</span>
-      <span class="value">Lincoln, LN1 1RP, UK</span>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Customer</div>
-    <div class="row">
-      <span class="label">Name</span>
-      <span class="value">${booking.guestName}</span>
-    </div>
-    <div class="row">
-      <span class="label">Email</span>
-      <span class="value">${booking.guestEmail}</span>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Payment</div>
-    <div class="row">
-      <span class="label">Total Price</span>
-      <span class="value">${formatCurrency(booking.totalPrice)}</span>
-    </div>
-    <div class="row">
-      <span class="label">${isDepositPayment ? "Deposit Paid (30%)" : "Amount Paid"}</span>
-      <span class="value green">${formatCurrency(booking.totalPaid)}</span>
-    </div>
-    ${booking.balanceDue > 0 ? `
-    <div class="total-row">
-      <span class="label gold">Balance Due</span>
-      <span class="value gold">${formatCurrency(booking.balanceDue)}</span>
-    </div>
-    <div class="balance-box">
-      <p style="font-size: 12px; color: #666; text-align: center;">Balance to be paid at your appointment</p>
-    </div>
-    ` : `
-    <div class="total-row">
-      <span class="label green">Paid in Full</span>
-      <span class="value green">${formatCurrency(booking.totalPaid)}</span>
-    </div>
-    `}
-  </div>
-
-  <div class="footer">
-    <p><strong>LAYO HAIR</strong></p>
-    <p>Lincoln, LN1 1RP, UK</p>
-    <p class="contact">+44 7350 167537</p>
-    <p style="margin-top: 8px;">Please arrive 10 minutes before your appointment.<br>Cancellations require 24-hour notice.</p>
-    <p style="margin-top: 12px; font-size: 10px; color: #bbb;">Receipt generated on ${receiptDate}</p>
-  </div>
-</body>
-</html>`;
-
-    const receiptWindow = window.open("", "_blank");
-    if (receiptWindow) {
-      receiptWindow.document.write(receiptHTML);
-      receiptWindow.document.close();
-      // Small delay to ensure content is rendered before print dialog
-      setTimeout(() => {
-        receiptWindow.print();
-      }, 300);
-    }
-  };
-
   // Loading state
   if (loading) {
     return (
@@ -343,8 +194,8 @@ function SuccessContent() {
               <Button asChild className="w-full bg-[#FFD700] text-black hover:bg-[#FFD700]/90">
                 <Link href="/track">Track Your Booking</Link>
               </Button>
-              <Button asChild variant="outline" className="w-full border-white/20 text-white">
-                <Link href="/">Back to Home</Link>
+              <Button variant="outline" className="w-full border-white/20 text-white" onClick={() => router.back()}>
+                Back
               </Button>
             </div>
           </div>
@@ -506,7 +357,6 @@ function SuccessContent() {
             </Button>
             <div className="grid grid-cols-2 gap-3">
               <Button
-                onClick={saveReceipt}
                 variant="outline"
                 className="border-[#FFD700]/30 text-[#FFD700] hover:bg-[#FFD700]/10"
               >
@@ -514,11 +364,11 @@ function SuccessContent() {
                 Save Receipt
               </Button>
               <Button
-                asChild
                 variant="outline"
                 className="border-white/20 text-white hover:bg-white/10"
+                onClick={() => router.back()}
               >
-                <Link href="/">Back to Home</Link>
+                Back
               </Button>
             </div>
           </div>
