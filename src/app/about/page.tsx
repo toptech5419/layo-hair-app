@@ -154,7 +154,7 @@ export default function AboutPage() {
                       alt="Layo - Founder & Lead Stylist"
                       width={192}
                       height={192}
-                      className="object-cover w-full h-full"
+                      className="object-cover object-[50%_65%] w-full h-full"
                     />
                   </div>
                   <div className="text-center md:text-left">
