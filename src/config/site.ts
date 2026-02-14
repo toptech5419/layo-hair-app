@@ -12,7 +12,7 @@ export const siteConfig = {
     whatsapp: "https://wa.me/447350167537",
   },
   contact: {
-    email: "okefunmilayo34@gmail.com",
+    email: "layohair5@gmail.com",
     phone: "+44 7350 167537",
     whatsapp: "+447350167537",
     address: "Lincoln, UK",
