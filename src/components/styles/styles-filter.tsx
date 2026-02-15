@@ -12,7 +12,9 @@ interface Style {
   slug: string;
   category: string;
   price: number;
+  priceMax?: number | null;
   duration: number;
+  durationMax?: number | null;
   description: string;
   image: string;
   isFeatured: boolean;
@@ -40,20 +42,27 @@ function formatCategory(category: string): string {
   return categoryNames[category] || category;
 }
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price);
+function formatPrice(price: number, priceMax?: number | null) {
+  const fmt = (val: number) =>
+    new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: "GBP",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(val);
+  if (priceMax && priceMax > price) return `${fmt(price)} - ${fmt(priceMax)}`;
+  return fmt(price);
 }
 
-function formatDuration(minutes: number) {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours === 0) return `${mins} min`;
-  return mins === 0 ? `${hours}h` : `${hours}h ${mins}m`;
+function formatDuration(minutes: number, maxMinutes?: number | null) {
+  const fmt = (m: number) => {
+    const hours = Math.floor(m / 60);
+    const mins = m % 60;
+    if (hours === 0) return `${mins} min`;
+    return mins === 0 ? `${hours}h` : `${hours}h ${mins}m`;
+  };
+  if (maxMinutes && maxMinutes > minutes) return `${fmt(minutes)} - ${fmt(maxMinutes)}`;
+  return fmt(minutes);
 }
 
 export function StylesFilter({ styles, categories }: StylesFilterProps) {
@@ -227,12 +236,12 @@ export function StylesFilter({ styles, categories }: StylesFilterProps) {
 
                     {/* Price & Duration */}
                     <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/10">
-                      <span className="text-[#FFD700] font-bold text-lg">
-                        {formatPrice(style.price)}
+                      <span className="text-[#FFD700] font-bold text-sm">
+                        {formatPrice(style.price, style.priceMax)}
                       </span>
-                      <span className="text-white/40 text-sm flex items-center gap-1.5">
-                        <Clock className="w-4 h-4" />
-                        {formatDuration(style.duration)}
+                      <span className="text-white/40 text-xs flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        {formatDuration(style.duration, style.durationMax)}
                       </span>
                     </div>
                   </div>

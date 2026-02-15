@@ -39,7 +39,9 @@ interface Style {
   slug: string;
   description: string | null;
   price: number;
+  priceMax?: number | null;
   duration: number;
+  durationMax?: number | null;
   category: string;
   images: string[];
   isActive: boolean;
@@ -60,18 +62,22 @@ interface StylesClientProps {
   categories: string[];
 }
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-  }).format(amount);
+function formatCurrency(amount: number, max?: number | null) {
+  const fmt = (val: number) =>
+    new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
+  if (max && max > amount) return `${fmt(amount)} - ${fmt(max)}`;
+  return fmt(amount);
 }
 
-function formatDuration(minutes: number) {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (mins === 0) return `${hours}h`;
-  return `${hours}h ${mins}m`;
+function formatDuration(minutes: number, maxMinutes?: number | null) {
+  const fmt = (m: number) => {
+    const hours = Math.floor(m / 60);
+    const mins = m % 60;
+    if (mins === 0) return `${hours}h`;
+    return `${hours}h ${mins}m`;
+  };
+  if (maxMinutes && maxMinutes > minutes) return `${fmt(minutes)} - ${fmt(maxMinutes)}`;
+  return fmt(minutes);
 }
 
 export default function StylesClient({
@@ -388,13 +394,13 @@ export default function StylesClient({
                     </td>
                     <td className="p-3">
                       <span className="text-sm font-medium text-[#FFD700]">
-                        {formatCurrency(style.price)}
+                        {formatCurrency(style.price, style.priceMax)}
                       </span>
                     </td>
                     <td className="p-3 hidden md:table-cell">
                       <span className="text-sm text-white/60 flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
-                        {formatDuration(style.duration)}
+                        {formatDuration(style.duration, style.durationMax)}
                       </span>
                     </td>
                     <td className="p-3 hidden lg:table-cell">
@@ -469,11 +475,11 @@ export default function StylesClient({
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-[#FFD700] font-medium">
-                            {formatCurrency(style.price)}
+                            {formatCurrency(style.price, style.priceMax)}
                           </span>
                           <span className="text-xs text-white/40 flex items-center gap-0.5">
                             <Clock className="w-3 h-3" />
-                            {formatDuration(style.duration)}
+                            {formatDuration(style.duration, style.durationMax)}
                           </span>
                         </div>
                       </div>
@@ -650,11 +656,11 @@ export default function StylesClient({
 
                     <div className="flex items-center gap-2 text-[10px] sm:text-xs text-white/60 mb-1 sm:mb-2">
                       <span className="text-[#FFD700] font-semibold">
-                        {formatCurrency(Number(style.price))}
+                        {formatCurrency(Number(style.price), style.priceMax ? Number(style.priceMax) : null)}
                       </span>
                       <span className="flex items-center gap-0.5">
                         <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                        {formatDuration(style.duration)}
+                        {formatDuration(style.duration, style.durationMax)}
                       </span>
                     </div>
 

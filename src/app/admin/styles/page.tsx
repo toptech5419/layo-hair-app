@@ -17,6 +17,8 @@ export default async function AdminStylesPage() {
   const serializedStyles = styles.map((style) => ({
     ...style,
     price: Number(style.price),
+    priceMax: style.priceMax ? Number(style.priceMax) : null,
+    durationMax: style.durationMax ?? null,
   }));
 
   // Get unique categories for filter tabs
@@ -37,11 +39,11 @@ export default async function AdminStylesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-black">
       <AdminSidebar user={user} />
 
       <main className="lg:ml-64 pt-16 lg:pt-0">
-        <div className="p-4 lg:p-6">
+        <div className="p-6 lg:p-8">
           <StylesClient
             styles={serializedStyles}
             stats={stats}

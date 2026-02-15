@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -28,20 +28,29 @@ interface Style {
   slug: string;
   name: string;
   price: number;
+  priceMax?: number | null;
   duration: number;
+  durationMax?: number | null;
   images: string[];
 }
 
 const timeSlots = ["9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM"];
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(price);
+function formatPrice(price: number, priceMax?: number | null) {
+  const fmt = (val: number) =>
+    new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
+  if (priceMax && priceMax > price) return `${fmt(price)} - ${fmt(priceMax)}`;
+  return fmt(price);
 }
 
-function formatDuration(minutes: number) {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins === 0 ? `${hours} hours` : `${hours}h ${mins}m`;
+function formatDuration(minutes: number, maxMinutes?: number | null) {
+  const fmt = (m: number) => {
+    const hours = Math.floor(m / 60);
+    const mins = m % 60;
+    return mins === 0 ? `${hours} hours` : `${hours}h ${mins}m`;
+  };
+  if (maxMinutes && maxMinutes > minutes) return `${fmt(minutes)} - ${fmt(maxMinutes)}`;
+  return fmt(minutes);
 }
 
 function getNext7Days() {
@@ -62,14 +71,10 @@ function getNext7Days() {
 
 export default function BookPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const preSelectedStyle = searchParams.get("style"); // e.g., "french-curls"
-
   const [step, setStep] = useState(1);
   const [styles, setStyles] = useState<Style[]>([]);
   const [isLoadingStyles, setIsLoadingStyles] = useState(true);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
-  const [hasAutoSelected, setHasAutoSelected] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", notes: "" });
@@ -79,7 +84,6 @@ export default function BookPage() {
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [isDateBlocked, setIsDateBlocked] = useState(false);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
-  const continueButtonRef = useRef<HTMLDivElement>(null);
 
   // Fetch styles from database
   useEffect(() => {
@@ -93,18 +97,6 @@ export default function BookPage() {
       .catch((err) => console.error("Error fetching styles:", err))
       .finally(() => setIsLoadingStyles(false));
   }, []);
-
-  // Auto-select style from URL parameter and skip to step 2
-  useEffect(() => {
-    if (preSelectedStyle && styles.length > 0 && !hasAutoSelected) {
-      const matchedStyle = styles.find((s) => s.slug === preSelectedStyle);
-      if (matchedStyle) {
-        setSelectedStyle(matchedStyle.id);
-        setStep(2); // Skip directly to date/time selection
-        setHasAutoSelected(true);
-      }
-    }
-  }, [preSelectedStyle, styles, hasAutoSelected]);
 
   const days = getNext7Days();
   const selectedStyleData = styles.find((s) => s.id === selectedStyle);
@@ -200,13 +192,7 @@ export default function BookPage() {
     }
 
     // All retries failed
-    if (lastError.includes("configuration error") || lastError.includes("503")) {
-      setError("Our payment system is currently being configured. Please try again later or contact us directly to book.");
-    } else if (lastError.includes("connection") || lastError.includes("network")) {
-      setError("Unable to connect to our payment provider. Please check your internet connection and try again.");
-    } else {
-      setError(`Something went wrong: ${lastError}. Please try again or contact us for assistance.`);
-    }
+    setError(`An error occurred with our connection to Stripe. Request was retried ${maxRetries} times. Please check your internet connection and try again.`);
     setIsProcessing(false);
   };
 
@@ -271,13 +257,7 @@ export default function BookPage() {
                   {styles.map((style) => (
                     <button
                       key={style.id}
-                      onClick={() => {
-                        setSelectedStyle(style.id);
-                        // Scroll to continue button after selection
-                        setTimeout(() => {
-                          continueButtonRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                        }, 100);
-                      }}
+                      onClick={() => setSelectedStyle(style.id)}
                       className={`p-4 rounded-xl border-2 transition-all text-left ${
                         selectedStyle === style.id
                           ? "border-[#FFD700] bg-[#FFD700]/10"
@@ -294,9 +274,9 @@ export default function BookPage() {
                         )}
                       </div>
                       <h3 className="text-white font-medium text-sm">{style.name}</h3>
-                      <p className="text-[#FFD700] font-bold text-sm">{formatPrice(style.price)}</p>
+                      <p className="text-[#FFD700] font-bold text-xs">{formatPrice(style.price, style.priceMax)}</p>
                       <p className="text-white/50 text-xs flex items-center gap-1 mt-1">
-                        <Clock className="w-3 h-3" /> {formatDuration(style.duration)}
+                        <Clock className="w-3 h-3" /> {formatDuration(style.duration, style.durationMax)}
                       </p>
                     </button>
                   ))}
@@ -462,7 +442,7 @@ export default function BookPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-white/60">Duration</span>
-                      <span className="text-white">{formatDuration(selectedStyleData?.duration || 0)}</span>
+                      <span className="text-white">{formatDuration(selectedStyleData?.duration || 0, selectedStyleData?.durationMax)}</span>
                     </div>
                     <div className="flex justify-between pt-3 border-t border-white/10">
                       <span className="text-white font-semibold">Total Price</span>
@@ -565,19 +545,14 @@ export default function BookPage() {
           )}
 
           {/* Navigation */}
-          <div ref={continueButtonRef} className="flex justify-between mt-12">
+          <div className="flex justify-between mt-12">
             <Button
               variant="outline"
-              onClick={() => {
-                if (step === 1) {
-                  router.push("/");
-                } else {
-                  setStep(step - 1);
-                }
-              }}
-              className="border-zinc-700 text-white hover:bg-zinc-800"
+              onClick={() => setStep(step - 1)}
+              disabled={step === 1}
+              className="border-zinc-700 text-white hover:bg-zinc-800 disabled:opacity-30"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" /> {step === 1 ? "Home" : "Back"}
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back
             </Button>
 
             {step < 4 && (

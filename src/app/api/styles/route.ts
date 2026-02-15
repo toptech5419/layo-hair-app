@@ -24,6 +24,8 @@ export async function GET(request: Request) {
     const serializedStyles = styles.map((style) => ({
       ...style,
       price: Number(style.price),
+      priceMax: style.priceMax ? Number(style.priceMax) : null,
+      durationMax: style.durationMax ?? null,
     }));
 
     return NextResponse.json(serializedStyles);

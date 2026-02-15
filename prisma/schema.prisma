@@ -92,8 +92,10 @@ model Style {
   slug        String   @unique
   description String   @db.Text
   category    Category
-  price       Decimal  @db.Decimal(10, 2)
-  duration    Int      // Duration in minutes
+  price       Decimal  @db.Decimal(10, 2)  // Starting price (minimum)
+  priceMax    Decimal? @db.Decimal(10, 2) // Maximum price (null = fixed price)
+  duration    Int      // Minimum duration in minutes
+  durationMax Int?     // Maximum duration in minutes
   images      String[] // Array of image URLs
   isActive    Boolean  @default(true)
   isFeatured  Boolean  @default(false)

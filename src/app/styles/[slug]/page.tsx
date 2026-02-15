@@ -11,17 +11,26 @@ import { StarRating } from "@/components/common/star-rating";
 import { getReviewsByStyle, getReviewStats } from "@/data/reviews";
 import { prisma } from "@/lib/prisma";
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-  }).format(price);
+function formatPrice(price: number, priceMax?: number | null) {
+  const fmt = (val: number) =>
+    new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: "GBP",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(val);
+  if (priceMax && priceMax > price) return `${fmt(price)} - ${fmt(priceMax)}`;
+  return fmt(price);
 }
 
-function formatDuration(minutes: number) {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins === 0 ? `${hours} hours` : `${hours}h ${mins}m`;
+function formatDuration(minutes: number, maxMinutes?: number | null) {
+  const fmt = (m: number) => {
+    const hours = Math.floor(m / 60);
+    const mins = m % 60;
+    return mins === 0 ? `${hours} hours` : `${hours}h ${mins}m`;
+  };
+  if (maxMinutes && maxMinutes > minutes) return `${fmt(minutes)} - ${fmt(maxMinutes)}`;
+  return fmt(minutes);
 }
 
 export default async function StyleDetailPage({
@@ -105,10 +114,10 @@ export default async function StyleDetailPage({
 
               <div className="flex items-center gap-4 mb-6">
                 <span className="text-3xl font-bold text-[#FFD700]">
-                  {formatPrice(Number(style.price))}
+                  {formatPrice(Number(style.price), style.priceMax ? Number(style.priceMax) : null)}
                 </span>
                 <span className="text-white/60 flex items-center gap-2">
-                  <Clock className="w-5 h-5" /> {formatDuration(style.duration)}
+                  <Clock className="w-5 h-5" /> {formatDuration(style.duration, style.durationMax)}
                 </span>
               </div>
 
@@ -223,11 +232,11 @@ export default async function StyleDetailPage({
                         {related.name}
                       </h3>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-[#FFD700] font-bold">
-                          {formatPrice(Number(related.price))}
+                        <span className="text-[#FFD700] font-bold text-sm">
+                          {formatPrice(Number(related.price), related.priceMax ? Number(related.priceMax) : null)}
                         </span>
-                        <span className="text-white/50 text-sm">
-                          {formatDuration(related.duration)}
+                        <span className="text-white/50 text-xs">
+                          {formatDuration(related.duration, related.durationMax)}
                         </span>
                       </div>
                     </div>

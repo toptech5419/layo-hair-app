@@ -6,31 +6,39 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Format price as currency
+ * Format price as currency (GBP)
  */
-export function formatPrice(price: number | string): string {
-  const numPrice = typeof price === "string" ? parseFloat(price) : price;
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(numPrice);
+export function formatPrice(price: number | string, priceMax?: number | string | null): string {
+  const fmt = (val: number | string) => {
+    const num = typeof val === "string" ? parseFloat(val) : val;
+    return new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: "GBP",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
+  };
+  if (priceMax && Number(priceMax) > Number(price)) {
+    return `${fmt(price)} - ${fmt(priceMax)}`;
+  }
+  return fmt(price);
 }
 
 /**
  * Format duration in minutes to human readable
  */
-export function formatDuration(minutes: number): string {
-  if (minutes < 60) {
-    return `${minutes} mins`;
+export function formatDuration(minutes: number, maxMinutes?: number | null): string {
+  const fmt = (m: number) => {
+    if (m < 60) return `${m} mins`;
+    const hours = Math.floor(m / 60);
+    const rem = m % 60;
+    if (rem === 0) return `${hours} hr${hours > 1 ? "s" : ""}`;
+    return `${hours} hr${hours > 1 ? "s" : ""} ${rem} mins`;
+  };
+  if (maxMinutes && maxMinutes > minutes) {
+    return `${fmt(minutes)} - ${fmt(maxMinutes)}`;
   }
-  const hours = Math.floor(minutes / 60);
-  const remainingMins = minutes % 60;
-  if (remainingMins === 0) {
-    return `${hours} hr${hours > 1 ? "s" : ""}`;
-  }
-  return `${hours} hr${hours > 1 ? "s" : ""} ${remainingMins} mins`;
+  return fmt(minutes);
 }
 
 /**
